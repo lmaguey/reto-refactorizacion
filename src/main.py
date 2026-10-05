@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Punto de entrada del gestor de tienda (menu interactivo en consola)."""
 
 import gestor
@@ -8,7 +7,7 @@ import reportes
 ARCHIVO = "datos_ejemplo.json"
 
 
-def pedir_numero(mensaje):
+def pedir_numero(mensaje: str) -> float:
     # pide un numero al usuario hasta que escriba algo valido
     while True:
         respuesta = input(mensaje)
@@ -18,7 +17,7 @@ def pedir_numero(mensaje):
             print("Eso no es un numero, intenta de nuevo.")
 
 
-def menu():
+def menu() -> None:
     print("Bienvenido al gestor de la tienda La Esquina")
     if almacen.existe_archivo(ARCHIVO):
         almacen.cargar_datos(ARCHIVO)
