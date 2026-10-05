@@ -82,6 +82,34 @@ def buscarProducto(texto):
     return temp2
 
 
+def _descuento_por_volumen(subtotal: float) -> float:
+    if subtotal >= 1000:
+        return subtotal * 0.10
+    if subtotal >= 500:
+        return subtotal * 0.05
+    return 0
+
+
+def _calcular_importes(
+    precio: float, cantidad: int, cliente: str | None = ""
+) -> dict[str, float]:
+    """Calcula subtotal, descuento, IVA y total (redondeado) de una compra."""
+    subtotal = precio * cantidad
+    descuento = _descuento_por_volumen(subtotal)
+    # los clientes cuyo codigo empieza con VIP tienen un extra,
+    # pero solo si su compra (ya con descuento) pasa de cierto monto
+    if cliente and cliente.startswith("VIP") and subtotal - descuento > 200:
+        descuento = descuento + subtotal * 0.02
+    base = subtotal - descuento
+    impuesto = base * 0.16
+    return {
+        "subtotal": subtotal,
+        "descuento": descuento,
+        "impuesto": impuesto,
+        "total": round(base + impuesto, 2),
+    }
+
+
 def registrar_venta(codigo, cantidad, cliente=""):
     """Registra una venta completa.
 
@@ -104,20 +132,7 @@ def registrar_venta(codigo, cantidad, cliente=""):
     if temp2["stock"] < cantidad:
         ultimo_error = "stock insuficiente"
         return None
-    aux = temp2["precio"] * cantidad
-    # descuentos por volumen de compra
-    desc = 0
-    if aux >= 1000:
-        desc = aux * 0.10
-    elif aux >= 500:
-        desc = aux * 0.05
-    # los clientes cuyo codigo empieza con VIP tienen un extra,
-    # pero solo si su compra (ya con descuento) pasa de cierto monto
-    if cliente and cliente.startswith("VIP") and aux - desc > 200:
-        desc = desc + aux * 0.02
-    base = aux - desc
-    impuesto = base * 0.16
-    total = round(base + impuesto, 2)
+    importes = _calcular_importes(temp2["precio"], cantidad, cliente)
     temp2["stock"] = temp2["stock"] - cantidad
     contadorVentas = contadorVentas + 1
     venta = {}
@@ -125,10 +140,10 @@ def registrar_venta(codigo, cantidad, cliente=""):
     venta["codigo"] = codigo
     venta["nombre"] = temp2["nombre"]
     venta["cantidad"] = cantidad
-    venta["subtotal"] = round(aux, 2)
-    venta["descuento"] = round(desc, 2)
-    venta["impuesto"] = round(impuesto, 2)
-    venta["total"] = total
+    venta["subtotal"] = round(importes["subtotal"], 2)
+    venta["descuento"] = round(importes["descuento"], 2)
+    venta["impuesto"] = round(importes["impuesto"], 2)
+    venta["total"] = importes["total"]
     venta["cliente"] = cliente
     venta["fecha"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     # armar el ticket en texto plano
@@ -138,7 +153,7 @@ def registrar_venta(codigo, cantidad, cliente=""):
     t = t + "Folio: " + str(venta["folio"]) + "\n"
     t = t + venta["nombre"] + " x" + str(cantidad) + "\n"
     t = t + "Subtotal: $" + str(venta["subtotal"]) + "\n"
-    if desc > 0:
+    if importes["descuento"] > 0:
         t = t + "Descuento: -$" + str(venta["descuento"]) + "\n"
     t = t + "IVA: $" + str(venta["impuesto"]) + "\n"
     t = t + "TOTAL: $" + str(venta["total"]) + "\n"
@@ -156,13 +171,5 @@ def cotizar(codigo, cantidad):
     if cantidad is None or cantidad <= 0:
         ultimo_error = "cantidad invalida"
         return None
-    aux = INVENTARIO[codigo]["precio"] * cantidad
-    desc = 0
-    if aux >= 1000:
-        desc = aux * 0.10
-    else:
-        if aux >= 500:
-            desc = aux * 0.05
-    base = aux - desc
-    total = base + base * 0.16
-    return round(total, 2)
+    # la cotizacion no recibe cliente, asi que nunca aplica el extra VIP
+    return _calcular_importes(INVENTARIO[codigo]["precio"], cantidad)["total"]
