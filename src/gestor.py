@@ -91,41 +91,30 @@ def registrar_venta(codigo, cantidad, cliente=""):
     regresa None y deja el motivo en ultimo_error.
     """
     global contadorVentas, ultimo_error
-    temp2 = None
-    if codigo is not None and codigo != "":
-        if codigo in INVENTARIO:
-            if cantidad is not None and cantidad > 0:
-                if INVENTARIO[codigo]["stock"] >= cantidad:
-                    temp2 = INVENTARIO[codigo]
-                else:
-                    ultimo_error = "stock insuficiente"
-                    return None
-            else:
-                ultimo_error = "cantidad invalida"
-                return None
-        else:
-            ultimo_error = "producto no existe"
-            return None
-    else:
+    if codigo is None or codigo == "":
         ultimo_error = "codigo vacio"
+        return None
+    if codigo not in INVENTARIO:
+        ultimo_error = "producto no existe"
+        return None
+    if cantidad is None or cantidad <= 0:
+        ultimo_error = "cantidad invalida"
+        return None
+    temp2 = INVENTARIO[codigo]
+    if temp2["stock"] < cantidad:
+        ultimo_error = "stock insuficiente"
         return None
     aux = temp2["precio"] * cantidad
     # descuentos por volumen de compra
     desc = 0
     if aux >= 1000:
         desc = aux * 0.10
-    else:
-        if aux >= 500:
-            desc = aux * 0.05
-        else:
-            desc = 0
+    elif aux >= 500:
+        desc = aux * 0.05
     # los clientes cuyo codigo empieza con VIP tienen un extra,
     # pero solo si su compra (ya con descuento) pasa de cierto monto
-    if cliente != "" and cliente is not None:
-        if len(cliente) >= 3:
-            if cliente[0:3] == "VIP":
-                if aux - desc > 200:
-                    desc = desc + aux * 0.02
+    if cliente and cliente.startswith("VIP") and aux - desc > 200:
+        desc = desc + aux * 0.02
     base = aux - desc
     impuesto = base * 0.16
     total = round(base + impuesto, 2)
