@@ -13,9 +13,8 @@ def guardar_datos(ruta):
     d["inventario"] = gestor.INVENTARIO
     d["ventas"] = gestor.VENTAS
     d["contador"] = gestor.contadorVentas
-    f = open(ruta, "w", encoding="utf-8")
-    json.dump(d, f, indent=2, ensure_ascii=False)
-    f.close()
+    with open(ruta, "w", encoding="utf-8") as f:
+        json.dump(d, f, indent=2, ensure_ascii=False)
     return True
 
 
@@ -27,14 +26,12 @@ def cargar_datos(ruta):
     if not os.path.exists(ruta):
         gestor.ultimo_error = "el archivo no existe"
         return False
-    f = open(ruta, "r", encoding="utf-8")
     try:
-        d = json.load(f)
-    except Exception:
-        f.close()
+        with open(ruta, encoding="utf-8") as f:
+            d = json.load(f)
+    except (json.JSONDecodeError, UnicodeDecodeError):
         gestor.ultimo_error = "archivo corrupto"
         return False
-    f.close()
     gestor.INVENTARIO.clear()
     for k in d["inventario"]:
         gestor.INVENTARIO[k] = d["inventario"][k]
@@ -46,7 +43,4 @@ def cargar_datos(ruta):
 
 
 def hayArchivo(ruta):
-    if os.path.exists(ruta):
-        return True
-    else:
-        return False
+    return os.path.exists(ruta)
